@@ -6,19 +6,18 @@ package com.xorlev.flightgear
  */
 class PIDController extends Controller {
   var lastControl: Control = null
-  val rollPid = new PID(0.06, 0.006, 0.002)
-  val pitchPid = new PID(0.06, 0.006, 0.002)
+  val rollPid = new PID(0.06, 0.006, 0.002, -45, 45, -1, 1)
+  val pitchPid = new PID(0.06, 0.006, 0.002, -90, 90, -1, 1)
 
-  class PID(kp: Double, ki: Double, kd: Double) {
-    var errSum = 0.0
+  class PID(kp: Double, ki: Double, kd: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double) {
     var integralTerm = 0.0
     var lastInput = 0.0
     var lastErr = 0.0
     var lastTime = System.currentTimeMillis()
 
-    def apply(input: Double,setPoint: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double) = calculate(input, setPoint, inMin, inMax, outMin, outMax)
+    def apply(input: Double,setPoint: Double) = calculate(input, setPoint)
 
-    def calculate(input: Double, setPoint: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double): Double = {
+    def calculate(input: Double, setPoint: Double): Double = {
       val now = System.currentTimeMillis()
       val timeDelta = now - lastTime
       println(s"TimeDelta: $timeDelta")
@@ -29,7 +28,6 @@ class PIDController extends Controller {
 
       val error = setPoint - input
       println(s"Error: $error")
-//      errSum += error*timeDelta
       println(s"ErrorSum: $errSum")
       val dErr = (error - lastErr) / timeDelta
       println(s"dErr: $dErr")
@@ -64,8 +62,8 @@ class PIDController extends Controller {
     if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 1000) return lastControl
 
     val control = Control(
-      rollPid(sample.roll, 0, -45, 45, -1, 1),
-      -pitchPid(sample.pitch, 5, -90, 90, -1, 1)
+      rollPid(sample.roll, 0),
+      -pitchPid(sample.pitch, 0)
     )
 
     lastControl = control
