@@ -33,5 +33,5 @@ object AutopilotRunner extends App {
    */
 
 
-  new FlightGearAutopilot(new ProportionalController).start()
+  new FlightGearAutopilot(new PIDController).start()
 }
