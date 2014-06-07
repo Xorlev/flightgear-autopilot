@@ -1,6 +1,6 @@
 package com.xorlev.flightgear
 
-import java.net.DatagramPacket
+import com.tzavellas.sse.jmx.export.MBeanExporter
 
 /**
  * 2014-06-02
@@ -31,7 +31,9 @@ object AutopilotRunner extends App {
     [roll-cntrl pitch-cntrl]))
 
    */
+  val exporter = new MBeanExporter
+  val pidController = new PIDController
+  exporter.export(pidController)
 
-
-  new FlightGearAutopilot(new PIDController).start()
+  new FlightGearAutopilot(pidController).start()
 }

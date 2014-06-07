@@ -1,5 +1,7 @@
 package com.xorlev.flightgear
 
+import com.tzavellas.sse.jmx.export.annotation.Managed
+
 /**
  * Implements a basic PID controller, that is,
  *
@@ -22,8 +24,14 @@ class PIDController extends Controller {
   val rollPid = new PID(0.06, 0.006, 0.002, -45, 45, -1, 1)
   val pitchPid = new PID(0.06, 0.006, 0.002, -90, 90, -1, 1)
 
+  @Managed
+  var pitchHold = 0.0
+
+  @Managed
+  var rollHold = 0.0
+
   class PID(kp: Double, ki: Double, kd: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double) {
-    var integralTerm = 0.0
+    var integralTerm = 1.0
     var lastInput = 0.0
     var lastErr = 0.0
     var lastTime = System.currentTimeMillis()
@@ -41,7 +49,6 @@ class PIDController extends Controller {
 
       val error = setPoint - input
       println(s"Error: $error")
-      println(s"ErrorSum: $errSum")
       val dErr = (error - lastErr) / timeDelta
       println(s"dErr: $dErr")
       val dInput = input - lastInput
@@ -75,8 +82,8 @@ class PIDController extends Controller {
     if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 1000) return lastControl
 
     val control = Control(
-      rollPid(sample.roll, 0),
-      -pitchPid(sample.pitch, 0)
+      rollPid(sample.roll, rollHold),
+      -pitchPid(sample.pitch, pitchHold)
     )
 
     lastControl = control
