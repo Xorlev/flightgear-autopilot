@@ -21,8 +21,15 @@ import com.tzavellas.sse.jmx.export.annotation.Managed
  */
 class PIDController extends Controller {
   var lastControl: Control = null
-  val rollPid = new PID(0.06, 0.006, 0.002, -45, 45, -1, 1)
-  val pitchPid = new PID(0.06, 0.006, 0.002, -90, 90, -1, 1)
+  val rollPid = new PID(0.06, 0.006, 0.0005, -45, 45, -1, 1)
+  val pitchPid = new PID(0.06, 0.006, 0.0005, -90, 90, -1, 1)
+
+  @Managed
+  def toggle() {
+    enabled = !enabled
+  }
+
+  var enabled = true
 
   @Managed
   var pitchHold = 0.0
@@ -31,7 +38,7 @@ class PIDController extends Controller {
   var rollHold = 0.0
 
   class PID(kp: Double, ki: Double, kd: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double) {
-    var integralTerm = 1.0
+    var integralTerm = 0.0
     var lastInput = 0.0
     var lastErr = 0.0
     var lastTime = System.currentTimeMillis()
@@ -53,6 +60,7 @@ class PIDController extends Controller {
       println(s"dErr: $dErr")
       val dInput = input - lastInput
       println(s"dInput: $dInput")
+      println(s"dInput*kd: ${dInput*kd}")
 
       integralTerm += ki*error
       println(s"integralTerm: $integralTerm")
@@ -79,7 +87,7 @@ class PIDController extends Controller {
   }
 
   override def control(sample: InstrumentSample): Control = {
-    if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 1000) return lastControl
+    if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 500) return lastControl
 
     val control = Control(
       rollPid(sample.roll, rollHold),
