@@ -7,4 +7,4 @@ Uses RxJava totally unnecessarily to decouple the consumer from the controller.
 
 #### Inspiration
 
-Initial version entirely inspired by and converted from http://nakkaya.com/2010/10/07/towards-a-clojure-autopilot-first-steps/
+Initial proportional controller & control interface entirely inspired by and converted from http://nakkaya.com/2010/10/07/towards-a-clojure-autopilot-first-steps/
