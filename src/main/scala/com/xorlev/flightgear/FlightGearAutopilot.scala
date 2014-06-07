@@ -1,7 +1,7 @@
 package com.xorlev.flightgear
 
 import java.net.{DatagramSocket, InetAddress, DatagramPacket}
-import rx.lang.scala.{Subscriber, Observable}
+import rx.lang.scala.Observable
 
 /**
  * 2014-06-05
@@ -31,6 +31,7 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
           s.onNext(sample)
         }
       } catch {
+        case e: NumberFormatException => println("Error parsing datagram: " + e)
         case t: Throwable => t.printStackTrace(); s.onError(t)
       } finally {
         socketIn.close()
@@ -45,11 +46,10 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
   }
 
   def parseDatagram(packet: DatagramPacket): InstrumentSample = {
-    val sample = new String(packet.getData).split(',') match {
+    new String(packet.getData).split(',') match {
       case Array(roll, pitch) => InstrumentSample(roll.toDouble, pitch.toDouble)
-      case _ => sys.error("Unexpected datagram")
+      case _ => throw new IllegalArgumentException("Bad datagram: " + new String(packet.getData))
     }
-    sample
   }
 
   override def start() = {
