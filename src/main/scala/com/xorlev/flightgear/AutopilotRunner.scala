@@ -1,6 +1,6 @@
 package com.xorlev.flightgear
 
-import java.net.{InetAddress, DatagramPacket, DatagramSocket}
+import java.net.DatagramPacket
 
 /**
  * 2014-06-02
@@ -15,7 +15,7 @@ object AutopilotRunner extends App {
    */
 
 
-  /*
+  /*}}
   (defn map-number [x in-min in-max out-min out-max]
   (let [val (+ (/ (* (- x in-min)
                      (- out-max out-min))

@@ -14,5 +14,5 @@ trait Autopilot {
 trait Controller {
   def control(sample: InstrumentSample): Control
 }
-case class InstrumentSample(roll: Double, pitch: Double)
-case class Control(roll: Double, pitch: Double)
+case class InstrumentSample(roll: Double, pitch: Double, timestamp: Double = System.currentTimeMillis())
+case class Control(roll: Double, pitch: Double, timestamp: Double = System.currentTimeMillis())
