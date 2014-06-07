@@ -1,7 +1,20 @@
 package com.xorlev.flightgear
 
 /**
- * 2014-06-07
+ * Implements a basic PID controller, that is,
+ *
+ * output = proportional + integralTerm + derivativeTerm
+ *
+ * error = setPoint - measured
+ * proportional = kp(tuning) * error
+ * integralTerm = sum of all previous ki(tuning) * error
+ * derivativeTerm = kd(tuning) * d(input)
+ *
+ * d(input) = input - lastInput
+ *
+ * This particular iteration applies control every 1000ms. kd,ki,kp have all been scaled to not overwhelm the max control
+ * of [-1, 1] by scaling by a term of 1/(inputMax)
+ *
  * @author Michael Rose
  */
 class PIDController extends Controller {
