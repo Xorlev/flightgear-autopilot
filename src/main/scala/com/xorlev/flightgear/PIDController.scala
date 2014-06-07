@@ -6,49 +6,66 @@ package com.xorlev.flightgear
  */
 class PIDController extends Controller {
   var lastControl: Control = null
-  val rollPid = new PID(0.0, 0.009, 0.005, 0.005)
-  val pitchPid = new PID(0.0, 0.009, 0.005, 0.005)
+  val rollPid = new PID(0.06, 0.006, 0.002)
+  val pitchPid = new PID(0.06, 0.006, 0.002)
 
-  class PID(setPoint: Double, kp: Double, ki: Double, kd: Double) {
+  class PID(kp: Double, ki: Double, kd: Double) {
     var errSum = 0.0
+    var integralTerm = 0.0
     var lastInput = 0.0
     var lastErr = 0.0
     var lastTime = System.currentTimeMillis()
 
-    def apply(input: Double) = calculate(input)
+    def apply(input: Double,setPoint: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double) = calculate(input, setPoint, inMin, inMax, outMin, outMax)
 
-    def calculate(input: Double): Double = {
+    def calculate(input: Double, setPoint: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double): Double = {
       val now = System.currentTimeMillis()
       val timeDelta = now - lastTime
       println(s"TimeDelta: $timeDelta")
       println(s"LastTime: $lastTime Now: ${now}")
       println(s"LastErr: $lastErr")
 
+      val kp2 = 1.0/inMax
+
       val error = setPoint - input
       println(s"Error: $error")
-      errSum += error*timeDelta
+//      errSum += error*timeDelta
       println(s"ErrorSum: $errSum")
       val dErr = (error - lastErr) / timeDelta
       println(s"dErr: $dErr")
       val dInput = input - lastInput
       println(s"dInput: $dInput")
 
-      val output = kp * error * ki * errSum - kd * dInput
+      integralTerm += ki*error
+      println(s"integralTerm: $integralTerm")
+
+      val clampedIntegralTerm = clamp(integralTerm, -1, 1)
+
+      val output = kp2 * error + clampedIntegralTerm - kd * dInput
 
       lastInput = input
       lastErr = error
       lastTime = now
       
-      output
+      clamp(output, -1, 1)
+    }
+
+    def clamp(output: Double, outMin: Double, outMax: Double) = {
+      if (output > outMax)
+        outMax
+      else if (output < outMin)
+        outMin
+      else
+        output
     }
   }
 
   override def control(sample: InstrumentSample): Control = {
-    if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 100) return lastControl
+    if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 1000) return lastControl
 
     val control = Control(
-      scale(rollPid(sample.roll), -45, 45, -1, 1),
-      scale(pitchPid(sample.pitch), -90, 90, -1, 1)
+      rollPid(sample.roll, 0, -45, 45, -1, 1),
+      -pitchPid(sample.pitch, 5, -90, 90, -1, 1)
     )
 
     lastControl = control
