@@ -49,7 +49,7 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
   }
 
   def parseDatagram(packet: DatagramPacket): InstrumentSample = {
-    new String(packet.getData).split(',') match {
+    new String(packet.getData, 0, packet.getLength).split(',') match {
       case Array(roll, pitch) => InstrumentSample(roll.toDouble, pitch.toDouble)
       case _ => throw new IllegalArgumentException("Bad datagram: " + new String(packet.getData))
     }
