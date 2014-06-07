@@ -17,12 +17,15 @@ import com.tzavellas.sse.jmx.export.annotation.Managed
  * This particular iteration applies control every 1000ms. kd,ki,kp have all been scaled to not overwhelm the max control
  * of [-1, 1] by scaling by a term of 1/(inputMax)
  *
+ * Integral - proportion should be main controller, however it can't accord for all error. Integral term gets you to 0
+ * Derivative - counteracts changes away from setpoint to minimize future error
+ *
  * @author Michael Rose
  */
 class PIDController extends Controller {
   var lastControl: Control = null
-  val rollPid = new PID(0.06, 0.002, 0.0008, -45, 45, -1, 1)
-  val pitchPid = new PID(0.06, 0.002, 0.0008, -90, 90, -1, 1)
+  val rollPid = new PID(0.04, 0.001, 0.0008, -45, 45, -1, 1)
+  val pitchPid = new PID(0.04, 0.001, 0.0008, -90, 90, -1, 1)
 
   @Managed
   def toggle() {
@@ -52,7 +55,7 @@ class PIDController extends Controller {
       println(s"LastTime: $lastTime Now: ${now}")
       println(s"LastErr: $lastErr")
 
-      val kp2 = 1.0/inMax
+      val kp2 = 1.0/inMax*2
 
       val error = setPoint - input
       println(s"Error: $error")
