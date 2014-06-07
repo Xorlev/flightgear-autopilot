@@ -4,7 +4,7 @@ import java.net.DatagramPacket
 
 /**
  * 2014-06-02
- * @author Michael Rose <michael@fullcontact.com>
+ * @author Michael Rose
  */
 object AutopilotRunner extends App {
   /*

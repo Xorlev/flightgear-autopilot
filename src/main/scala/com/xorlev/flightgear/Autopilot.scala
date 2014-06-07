@@ -1,10 +1,8 @@
 package com.xorlev.flightgear
 
-import java.net.{InetAddress, DatagramPacket, DatagramSocket}
-
 /**
  * 2014-06-02
- * @author Michael Rose <michael@fullcontact.com>
+ * @author Michael Rose
  */
 
 trait Autopilot {

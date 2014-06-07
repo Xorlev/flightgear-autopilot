@@ -5,7 +5,7 @@ import rx.lang.scala.{Subscriber, Observable}
 
 /**
  * 2014-06-05
- * @author Michael Rose <michael@fullcontact.com>
+ * @author Michael Rose
  */
 class FlightGearAutopilot(controller: Controller) extends Autopilot {
   val fgHost = InetAddress.getByName("127.0.0.1")

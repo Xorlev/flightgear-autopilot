@@ -2,7 +2,7 @@ package com.xorlev.flightgear
 
 /**
  * 2014-06-07
- * @author Michael Rose <michael@fullcontact.com>
+ * @author Michael Rose
  */
 class PIDController extends Controller {
   var lastControl: Control = null
