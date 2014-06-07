@@ -19,7 +19,21 @@
             <artifactId>scala-library</artifactId>
             <version>${scala.version}</version>
         </dependency>
-        
+        <dependency>
+            <groupId>com.netflix.rxjava</groupId>
+            <artifactId>rxjava-core</artifactId>
+            <version>0.18.4</version>
+        </dependency>
+        <dependency>
+            <groupId>com.netflix.rxjava</groupId>
+            <artifactId>rxjava-scala</artifactId>
+            <version>0.18.4</version>
+        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>com.netflix.rxjava</groupId>-->
+            <!--<artifactId>rxjava-java8</artifactId>-->
+            <!--<version>0.18.4</version>-->
+        <!--</dependency>-->
     </dependencies>
 
     <build>

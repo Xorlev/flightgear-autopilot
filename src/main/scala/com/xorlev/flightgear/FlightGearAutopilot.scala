@@ -1,6 +1,7 @@
 package com.xorlev.flightgear
 
 import java.net.{DatagramSocket, InetAddress, DatagramPacket}
+import rx.lang.scala.{Subscriber, Observable}
 
 /**
  * 2014-06-05
@@ -20,20 +21,27 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
 
   @volatile var active = false
 
-  private[this] def controlLoop() {
-    try {
-      while(active) {
-        socketIn.receive(packet)
+  private[this] def observeInstruments(): Observable[InstrumentSample] = {
+    Observable(s => {
+      try {
+        while (active) {
+          socketIn.receive(packet)
 
-        val sample = parseDatagram(packet)
-
-        val control = controller.control(sample)
-        val payload = new String(s"${control.roll},${control.pitch}\n")
-        socketOut.send(new DatagramPacket(payload.getBytes, payload.size, fgHost, fgPortIn))
+          val sample = parseDatagram(packet)
+          s.onNext(sample)
+        }
+      } catch {
+        case t: Throwable => t.printStackTrace(); s.onError(t)
+      } finally {
+        socketIn.close()
+        s.onCompleted()
       }
-    } finally {
-      socketIn.close()
-    }
+    })
+  }
+
+  private[this] def applyControl(control: Control) = {
+    val payload = new String(s"${control.roll},${control.pitch}\n")
+    socketOut.send(new DatagramPacket(payload.getBytes, payload.size, fgHost, fgPortIn))
   }
 
   def parseDatagram(packet: DatagramPacket): InstrumentSample = {
@@ -46,7 +54,10 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
 
   override def start() = {
     active = true
-    controlLoop()
+
+    observeInstruments()
+    .map(controller.control)
+    .subscribe(c => applyControl(c))
   }
 
   override def stop() = active = false
