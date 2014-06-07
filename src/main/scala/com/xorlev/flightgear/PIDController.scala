@@ -21,8 +21,8 @@ import com.tzavellas.sse.jmx.export.annotation.Managed
  */
 class PIDController extends Controller {
   var lastControl: Control = null
-  val rollPid = new PID(0.06, 0.006, 0.0005, -45, 45, -1, 1)
-  val pitchPid = new PID(0.06, 0.006, 0.0005, -90, 90, -1, 1)
+  val rollPid = new PID(0.06, 0.002, 0.0008, -45, 45, -1, 1)
+  val pitchPid = new PID(0.06, 0.002, 0.0008, -90, 90, -1, 1)
 
   @Managed
   def toggle() {
@@ -87,7 +87,7 @@ class PIDController extends Controller {
   }
 
   override def control(sample: InstrumentSample): Control = {
-    if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 500) return lastControl
+    if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 200) return lastControl
 
     val control = Control(
       rollPid(sample.roll, rollHold),

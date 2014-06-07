@@ -27,11 +27,14 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
         while (active) {
           socketIn.receive(packet)
 
-          val sample = parseDatagram(packet)
-          s.onNext(sample)
+          try {
+            val sample = parseDatagram(packet)
+            s.onNext(sample)
+          } catch {
+            case e: NumberFormatException => println("Error parsing datagram: " + e)
+          }
         }
       } catch {
-        case e: NumberFormatException => println("Error parsing datagram: " + e)
         case t: Throwable => t.printStackTrace(); s.onError(t)
       } finally {
         socketIn.close()
