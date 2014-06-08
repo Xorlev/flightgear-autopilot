@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<PropertyList>
+    <generic>
+        <output>
+            <line_separator>newline</line_separator>
+            <var_separator>,</var_separator>
+
+            <chunk>
+                <name>/orientation/roll-deg</name>
+                <node>/orientation/roll-deg</node>
+                <type>float</type>
+                <format>%f</format>
+            </chunk>
+
+            <chunk>
+                <name>/orientation/pitch-deg</name>
+                <node>/orientation/pitch-deg</node>
+                <type>float</type>
+                <format>%f</format>
+            </chunk>
+
+            <chunk>
+                <name>/orientation/heading-magnetic-deg</name>
+                <node>/orientation/heading-magnetic-deg</node>
+                <type>float</type>
+                <format>%f</format>
+            </chunk>
+        </output>
+    </generic>
+</PropertyList>
