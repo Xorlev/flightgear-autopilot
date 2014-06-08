@@ -1,6 +1,10 @@
 package com.xorlev.flightgear
 
 import com.tzavellas.sse.jmx.export.annotation.Managed
+import com.tzavellas.sse.jmx.export.MBeanExporter
+import javax.management.ObjectName
+import org.slf4j.LoggerFactory
+import com.codahale.metrics.{ExponentiallyDecayingDoubleReservoir, ExponentiallyDecayingReservoir}
 
 /**
  * Implements a basic PID controller, that is,
@@ -24,59 +28,76 @@ import com.tzavellas.sse.jmx.export.annotation.Managed
  */
 class PIDController extends Controller {
   var lastControl: Control = null
-  val rollPid = new PID(0.04, 0.001, 0.0008, -45, 45, -1, 1)
-  val pitchPid = new PID(0.04, 0.001, 0.0008, -90, 90, -1, 1)
+  val rollPid = new PID(0.1, 0.001, 0.0004, -40, 40, -0.5, 0.5)
+  val pitchPid = new PID(0.01, 0.001, 0.0005, -90, 90, -0.5, 0.5)
+  val headingPid = new PID(1.5, 0, 0, -90, 90, -30, 30)
+  val log = LoggerFactory.getLogger(this.getClass)
 
   @Managed
-  def toggle() {
-    enabled = !enabled
-  }
-
-  var enabled = true
+  var pitchHold = 5.0
 
   @Managed
-  var pitchHold = 0.0
-
+  var rollHold = 20.0
+  
   @Managed
-  var rollHold = 0.0
+  var headingHold = -180.0 // disabled
 
-  class PID(kp: Double, ki: Double, kd: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double) {
-    var integralTerm = 0.0
-    var lastInput = 0.0
-    var lastErr = 0.0
-    var lastTime = System.currentTimeMillis()
+  class PID(
+            var kp2: Double,
+             var ki2: Double,
+             var kd2: Double,
+             var inMin: Double,
+             var inMax: Double,
+             var outMin: Double,
+             var outMax: Double) {
+    @Managed var kp: Double = kp2
+    @Managed var ki: Double = ki2
+    @Managed var kd: Double = kd2
+    // Process variables
+    @Managed(readOnly = true) var proportionalTerm = 0.0
+    @Managed(readOnly = true) var integralTerm = 0.0
+    @Managed(readOnly = true) var clampedIntegralTerm = 0.0
+    @Managed(readOnly = true) var derivativeTerm = 0.0
+    @Managed(readOnly = true) var output = 0.0
+    @Managed(readOnly = true) var lastInput = 0.0
+    @Managed(readOnly = true) var lastErr = 0.0
+    @Managed(readOnly = true) var lastTime = System.currentTimeMillis()
 
-    def apply(input: Double,setPoint: Double) = calculate(input, setPoint)
+    def apply(input: Double, setPoint: Double) = calculate(input, setPoint)
 
     def calculate(input: Double, setPoint: Double): Double = {
       val now = System.currentTimeMillis()
       val timeDelta = now - lastTime
-      println(s"TimeDelta: $timeDelta")
-      println(s"LastTime: $lastTime Now: ${now}")
-      println(s"LastErr: $lastErr")
-
-      val kp2 = 1.0/inMax*2
+      log.debug(s"TimeDelta: $timeDelta")
+      log.debug(s"LastTime: $lastTime Now: ${now}")
+      log.debug(s"LastErr: $lastErr")
 
       val error = setPoint - input
-      println(s"Error: $error")
+
+      log.debug(s"Error: $error")
       val dErr = (error - lastErr) / timeDelta
-      println(s"dErr: $dErr")
+      log.debug(s"dErr: $dErr")
       val dInput = input - lastInput
-      println(s"dInput: $dInput")
-      println(s"dInput*kd: ${dInput*kd}")
+      log.debug(s"dInput: $dInput")
+      log.debug(s"dInput*kd: ${dInput*kd}")
 
-      integralTerm += ki*error
-      println(s"integralTerm: $integralTerm")
+      proportionalTerm = kp * error
+      integralTerm += error
+      clampedIntegralTerm = clamp(ki*integralTerm, outMin, outMax)
+      derivativeTerm = kd * dInput
+      log.debug(s"proportionalTerm: $proportionalTerm")
+      log.debug(s"integralTerm: $integralTerm")
+      log.debug(s"clampedIntegralTerm: $clampedIntegralTerm")
+      log.debug(s"derivativeTerm: $derivativeTerm")
 
-      val clampedIntegralTerm = clamp(integralTerm, -1, 1)
 
-      val output = kp2 * error + clampedIntegralTerm - kd * dInput
+      output = clamp(proportionalTerm + clampedIntegralTerm - derivativeTerm, outMin, outMax)
 
       lastInput = input
       lastErr = error
       lastTime = now
-      
-      clamp(output, -1, 1)
+
+      output
     }
 
     def clamp(output: Double, outMin: Double, outMax: Double) = {
@@ -92,13 +113,20 @@ class PIDController extends Controller {
   override def control(sample: InstrumentSample): Control = {
     if (lastControl != null && System.currentTimeMillis() - lastControl.timestamp < 200) return lastControl
 
+    if (headingHold >= 0) {
+      rollHold = headingPid(sample.heading, headingHold)
+    }
+
+    var rollControl = rollPid(sample.roll, rollHold)
+    var pitchControl = -pitchPid(sample.pitch, pitchHold)
+
     val control = Control(
-      rollPid(sample.roll, rollHold),
-      -pitchPid(sample.pitch, pitchHold)
+      rollControl,
+      pitchControl
     )
 
     lastControl = control
-    println(s"Control: roll[${sample.roll}, ${control.roll}], pitch[${sample.pitch}, ${control.pitch}]")
+    log.info(s"Control: roll[${sample.roll}, ${control.roll}], pitch[${sample.pitch}, ${control.pitch}]")
 
     control
   }
@@ -106,7 +134,7 @@ class PIDController extends Controller {
   def scale(input: Double, inMin: Double, inMax: Double, outMin: Double, outMax: Double) = {
     val output = (((input - inMin) * (outMax - outMin)) / (inMax - inMin)) + outMin
 
-    println("=> Output " + output)
+    log.debug("=> Output " + output)
 
     if (output > outMax)
       outMax
@@ -117,22 +145,29 @@ class PIDController extends Controller {
     else
       output
   }
+
+  def export(exporter: MBeanExporter) {
+    exporter.export(this)
+    exporter.export(rollPid, ObjectName.getInstance("com.xorlev.flightgear:type=RollPID"))
+    exporter.export(pitchPid,  ObjectName.getInstance("com.xorlev.flightgear:type=PitchPID"))
+    exporter.export(headingPid,  ObjectName.getInstance("com.xorlev.flightgear:type=HeadingPID"))
+  }
 //
 //  def pidPitch(input: Double) = {
 //    val now = System.currentTimeMillis()
 //    val timeDelta = 100
-//    println(s"TimeDelta: $timeDelta")
-//    println(s"LastTime: $lastControlled Now: ${now}")
-//    println(s"LastErr: $lastErr_pitch")
+//    log.debug(s"TimeDelta: $timeDelta")
+//    log.debug(s"LastTime: $lastControlled Now: ${now}")
+//    log.debug(s"LastErr: $lastErr_pitch")
 //
 //    val error = setPoint - input
-//    println(s"Error: $error")
+//    log.debug(s"Error: $error")
 //    errSum_pitch += error*timeDelta
-//    println(s"ErrorSum: $errSum_pitch")
+//    log.debug(s"ErrorSum: $errSum_pitch")
 //    val dErr = (error - lastErr_pitch) / timeDelta
-//    println(s"dErr: $dErr")
+//    log.debug(s"dErr: $dErr")
 //    val dInput = input - lastInput_pitch
-//    println(s"dInput: $dInput")
+//    log.debug(s"dInput: $dInput")
 //
 //    val output = kp * error * ki * errSum_pitch - kd * dInput
 //

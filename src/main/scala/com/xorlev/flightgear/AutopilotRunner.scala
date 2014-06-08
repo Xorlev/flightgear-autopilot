@@ -33,7 +33,9 @@ object AutopilotRunner extends App {
    */
   val exporter = new MBeanExporter
   val pidController = new PIDController
-  exporter.export(pidController)
+  val autopilot = new FlightGearAutopilot(pidController)
+  exporter.export(autopilot)
+  pidController.export(exporter)
 
-  new FlightGearAutopilot(pidController).start()
+  autopilot.start()
 }

@@ -2,6 +2,7 @@ package com.xorlev.flightgear
 
 import java.net.{DatagramSocket, InetAddress, DatagramPacket}
 import rx.lang.scala.Observable
+import com.tzavellas.sse.jmx.export.annotation.Managed
 
 /**
  * 2014-06-05
@@ -13,15 +14,15 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
   val fgPortIn = 6789
   val bufferLength = 2048
 
-  val socketIn = new DatagramSocket(fgPortOut)
   val socketOut = new DatagramSocket()
-  val packet = new DatagramPacket(Array.ofDim(bufferLength), bufferLength)
 
   // Variables
-
   @volatile var active = false
 
   private[this] def observeInstruments(): Observable[InstrumentSample] = {
+    val socketIn = new DatagramSocket(fgPortOut)
+    val packet = new DatagramPacket(Array.ofDim(bufferLength), bufferLength)
+
     Observable(s => {
       try {
         while (active) {
@@ -50,11 +51,12 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
 
   def parseDatagram(packet: DatagramPacket): InstrumentSample = {
     new String(packet.getData, 0, packet.getLength).split(',') match {
-      case Array(roll, pitch) => InstrumentSample(roll.toDouble, pitch.toDouble)
+      case Array(roll, pitch, heading) => InstrumentSample(roll.toDouble, pitch.toDouble, heading.toDouble)
       case _ => throw new IllegalArgumentException("Bad datagram: " + new String(packet.getData))
     }
   }
 
+  @Managed
   override def start() = {
     active = true
 
@@ -63,5 +65,6 @@ class FlightGearAutopilot(controller: Controller) extends Autopilot {
     .subscribe(c => applyControl(c))
   }
 
+  @Managed
   override def stop() = active = false
 }
